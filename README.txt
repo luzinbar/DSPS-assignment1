@@ -1,9 +1,5 @@
 DSPS hw01
 
-* Eden Assraf - 316487669
-* Inbar Luz - 206260325
-
-
 
 ----- Running Instructions -----
 
@@ -23,21 +19,21 @@ Where:
 ----- Program Explanation -----
 
 Terms:
-1. App2managerQ – a general SQS to send messages from all the local apps to the manager.
-2. Manager2appQ – a general SQS to send message from the manager to all the local apps.
-3. appB – a personal bucket in S3 for every local app.
-4. Manager2workersQ – a general SQS to send message from the manager to the workers.
-5. Workers2managerQ – a general SQS to send a message from the workers to the manager. 
+1. App2managerQ â€“ a general SQS to send messages from all the local apps to the manager.
+2. Manager2appQ â€“ a general SQS to send message from the manager to all the local apps.
+3. appB â€“ a personal bucket in S3 for every local app.
+4. Manager2workersQ â€“ a general SQS to send message from the manager to the workers.
+5. Workers2managerQ â€“ a general SQS to send a message from the workers to the manager. 
 
 
 ***** Local Application *****
 
 - A quick brief:
-Every local app is communicating with the manager with SQS queues. We have two SQSs for this part – one from the local app to the manager and one from the manager to the local app. 
+Every local app is communicating with the manager with SQS queues. We have two SQSs for this part â€“ one from the local app to the manager and one from the manager to the local app. 
 Only the first local app that connects to the system and initializes the manager, creates the SQS queues, the others are looking for the existing queues by their name to use them. 
 The local app uploads the file to S3, wait for a done message from the manager, indicating the status of all the tasks in its input file, downloads from S3 the output file, and convert it to HTML.
 
-1. The first local application starts and checks the manager activity, which is tagged as manager. 
+1. The first local application starts and checks the manager activity, which is tagged as manager.Â 
 2. If the manager does not exist, the local app creates a new EC2 instance for the manager and provides the manager a user data containing the credentials for AWS services, JDK to download, 
 the path to the jar, etc. Moreover, the local app creates two SQSs queues (app2managerQ, manager2appQ).
 3. Else, the manager already exists, and the local application looks for the relevant queues to use.
@@ -46,7 +42,7 @@ the path to the jar, etc. Moreover, the local app creates two SQSs queues (app2m
 args[2] = n (number of missions per worker).
 6. The local application is waiting for a "done" message that contains the relevant appB (to know that this message belongs to this local app) from the manager by checking the Manager2appQ.
 7. The local application downloads the summary file from S3 and creates an HTML file with the data from the summary file.
-8. If the local application didn’t receive a "terminate" flag in args[3], the local app will finish it's run.
+8. If the local application didnâ€™t receive a "terminate" flag in args[3], the local app will finish it's run.
 9. Else, if the local application contains "terminate" flag in args[3], the local application will send a message to the manager through app2managerQ to tell him to terminate everything.
 10. After the manager finished terminating the workers, queues and buckets, it sends a "done terminate" message back to the local application, and the local application now can terminate the 
 manager (EC2 instance), terminate the last SQS (manager2appQ), and finish the program.
@@ -56,9 +52,9 @@ manager (EC2 instance), terminate the last SQS (manager2appQ), and finish the pr
 
 - A quick brief:
 We divided the manager's work into two threads:	
-One is the CreateMissionsManager who is responsible for creating app handlers for each local application (which is a thread from the thread pool, handling the entire work related to the specific 
+One is the CreateMissionsManagerÂ who is responsible for creatingÂ app handlersÂ for each local application (which is a thread from the thread pool, handling the entire work related to the specific 
 application), and terminate the entire program when a terminate message arrives (app handlers, workers, buckets and queues).	
-The second is ReceiveMissionsManager who is responsible for sending each app handler the relevant file after the workers finished converting it.
+The second isÂ ReceiveMissionsManagerÂ who is responsible for sending each app handler the relevant file after the workers finished converting it.
 
 1. After the first local application initializes the manager, the main manager creates an SQS from the workers to the manager. Moreover, the main manager is responsible to create all the common 
 fields for both CreateMissionsManager and ReceiveMissionsManager. 
@@ -70,7 +66,7 @@ fields for both CreateMissionsManager and ReceiveMissionsManager.
 1. The CreateMissionsManager is waiting for a message from a local app that a new file was uploaded or to terminate the program.
 2. If the message is about a new file, the CreateMissionsManager creates a new app handler for this local app and a new thread from the threads pool. The CreateMissionsManager gives the new 
 app handler the path of the input file for its own local application and deletes the message from the app2managerQ.
-3. If the message is a terminate message, the CreateMissionsManager sends a terminate message to the workers. 
+3. If the message is a terminate message, the CreateMissionsManager sends a terminate message to the workers.Â 
 4. The CreateMissionsManager is responsible to kill all the app handlers, all the workers (after they send back a "worker terminate" message), all the SQSs (except for manager2appQ) and all the 
 buckets in S3. After everything is terminated, the CreateMissionsManager sends a "manager terminated" message to the local app that sends the "terminate message".
 
@@ -85,8 +81,8 @@ checks if the mission was handled or failed with the first part of the message b
 == ReceiveMissionsManager ==
 1. The ReceiveMissionsManager takes care of the creation of new workers if needed with the formula: numOfNotProcessedMission divide by n, rounding up, and then subtracting the number of 
 active workers (already running). It also checks that there are no more than 15 workers in total.
-2. If needed, the ReceiveMissionsManager creates new workers – new EC2 instances, provides them the user data containing the credentials for AWS services, JDK to download, the path to the jar, etc.
-3. After the ReceiveMissionsManager is finished with the workers for that iteration, it looks for messages from workers in workers2managerQ. 
+2. If needed, the ReceiveMissionsManager creates new workers â€“ new EC2 instances, provides them the user data containing the credentials for AWS services, JDK to download, the path to the jar, etc.
+3. After the ReceiveMissionsManager is finished with the workers for that iteration, it looks for messages from workers in workers2managerQ.Â 
 4. If new messages have arrived, it will read the messages and send them to the relevant app handler. After taking care of the message, it deletes it.
 
 
@@ -124,8 +120,8 @@ With all these threads, we make sure that the manager can handle a big number of
 * Terminate: as explained above, the CreateMissionsManager is responsible to kill all the app handlers, all the workers, all the SQSs (except for manager2appQ), and all the buckets in S3. Then the 
 local application that sent the "terminate" flag would kill the manager and the manager2appQ queue.
 * System limitation: we create a new EC2 instance only if needed, so we make sure that the number of instances is as small as possible.
-* Workers: each worker works hard and continuously. If a worker currently doesn’t work on a mission, it looks for the next mission by checking the manager2workersQ. 
-* Defined tasks: as explained above, each part of the system has properly defined tasks. If we thought that a part of the system takes care of too much, we divided it to more classes in order to make 
+* Workers:Â each worker works hard and continuously. If a worker currently doesnâ€™t work on a mission, it looks for the next mission by checking the manager2workersQ.Â 
+* Defined tasks:Â as explained above, each part of the system has properly defined tasks. If we thought that a part of the system takes care of too much, we divided it to more classes in order to make 
 the program as clean and as understandable as can be.
-* Distributed: the system is distributed and all the program is chronologic, creating workers only if needed. All the workers take their missions from the same queue so that no mission will be untreated. 
+* Distributed:Â the system is distributed and all the program is chronologic, creating workers only if needed. All the workers take their missions from the same queue so that no mission will be untreated. 
 Moreover, every local application has a personal app handler so the applications are not interdependent.
